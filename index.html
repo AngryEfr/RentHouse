@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Бронирование дома посуточно</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="main">
+        <img src="https://gas-kvas.com/uploads/posts/2023-02/1675484251_gas-kvas-com-p-kartinki-dlya-fonovogo-risunka-raboch-stol-43.jpg">
+        <h1>Бронирование дома в Маурино</h1>
+        <p>Здесь описание</p>
+    </div>
+
+    <form id="bookingForm" action="submitBooking.php" method="POST">
+        <label for="name">Ваше имя:</label>
+        <input type="text" id="name" name="name" required><br><br>
+        <label for="phone">Ваш номер телефона:</label>
+        <input type="tel" id="phone" name="phone" required><br><br>
+        <div class="calendar">
+            <h1 id="currentMonth"></h1>
+            <ul class="days"></ul>
+        </div>
+        <div style="display: inline;">
+            <label for="checkInDate">Дата заезда:</label>
+            <input type="date" id="checkInDate" name="checkInDate" required><br><br>
+            <label for="checkOutDate">Дата выезда:</label>
+            <input type="date" id="checkOutDate" name="checkOutDate" required><br><br>
+        </div>
+        <div id="error"></div>
+        <div style="display: inline;">
+          <input type="submit" value="Забронировать">
+          <button id="cancelButton">Отмена</button>
+        </div>
+    </form>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
