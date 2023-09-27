@@ -6,6 +6,7 @@ let isStartDateSelected = false;
 tg.expand()
 
 submitButton.addEventListener("click", () => {
+    document.getElementById("error").innerText = "";
     let name = document.getElementById("name").value;
     let phone = document.getElementById("phone").value;
     let dateIn = document.getElementById("checkInDate").value;
@@ -15,6 +16,14 @@ submitButton.addEventListener("click", () => {
         document.getElementById("error").innerText = "Ошибка в номере телефона";
         return;
     }
+
+    let data = {
+        name: name,
+        phone: phone,
+        dateIn: dateIn,
+        dateOut: dateOut,
+    }
+    tg.sendData(JSON.stringify(data));
 
     tg.close();
 });
