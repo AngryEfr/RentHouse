@@ -24,14 +24,21 @@ def get_active_house():
 
 def get_booking(message, name, id_house, date_begin, date_end):
     if type(date_end) is datetime.date:
+        bookings = []
         date = date_end - date_begin
+        payments = Payments(id_person=int(message.chat.id), id_house=id_house, comment=date.days)
         for i in range(date.days):
             booking = Booking(id_person=int(message.chat.id), name_person=name, id_house=id_house, date=date_begin)
-            session.add(booking)
+            bookings.append(booking)
             date_begin += datetime.timedelta(days=1)
+        payments.bookings = bookings
+        session.add(payments)
+
     else:
+        payments = Payments(id_person=int(message.chat.id), id_house=id_house, comment='1')
         booking = Booking(id_person=int(message.chat.id), name_person=name, id_house=id_house, date=date_begin)
-        session.add(booking)
+        payments.bookings = [booking]
+        session.add(payments)
 
     try:
         session.commit()
@@ -39,3 +46,11 @@ def get_booking(message, name, id_house, date_begin, date_end):
     except IntegrityError:
         session.rollback()
         return False
+
+
+def check_date(date_check, house_id):
+    dates = session.query(Booking).filter(Booking.date == date_check, Booking.id_house == house_id).first()
+    if dates:
+        return False
+    else:
+        return True

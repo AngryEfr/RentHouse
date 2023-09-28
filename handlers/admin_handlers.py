@@ -8,13 +8,15 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from states.states import FSMFillForm
 
-from database.db_quick_commands import register_user, get_active_house, get_booking
+from database.db_quick_commands import register_user, get_active_house, get_booking, check_date
 from json import loads
 
 from utils.utils import change_the_date
 from filters.is_admin import IsAdmin
 from filters.Is_Date import HasUsernamesFilter
 from lexicon.lexicon_ru import LEXICON
+
+import datetime
 
 router = Router()
 router.message.filter(IsAdmin())
@@ -80,8 +82,9 @@ async def process_cancel_command_state(message: Message, state: FSMContext):
 
 # Этот хэндлер будет срабатывать на команду /fillform
 # и переводить бота в состояние ожидания ввода имени
-@router.message(Command(commands='fillform'), StateFilter(default_state))
+@router.message(Command(commands='fillform'))
 async def process_fillform_command(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer(text='Пожалуйста, введите имя гостя')
     # Устанавливаем состояние ожидания ввода имени
     await state.set_state(FSMFillForm.fill_name)
@@ -120,8 +123,6 @@ async def warning_not_name(message: Message):
 
 @router.callback_query(StateFilter(FSMFillForm.fill_id_house), F.data.in_(['1', '2', '3']))
 async def process_take_house(callback: CallbackQuery, state: FSMContext):
-    # Cохраняем пол (callback.data нажатой кнопки) в хранилище,
-    # по ключу "fill_id_house"
     await state.update_data(fill_id_house=callback.data)
     await callback.message.delete()
     await callback.message.answer(
@@ -142,45 +143,69 @@ async def warning_not_age(message: Message):
 
 @router.message(StateFilter(FSMFillForm.fill_date), HasUsernamesFilter())
 async def process_fill_date(message: Message, state: FSMContext):
-    print(message.from_user.id)
-    # Cохраняем пол (callback.data нажатой кнопки) в хранилище,
-    # по ключу "fill_date"
-    await state.update_data(fill_date=message.text)
-    await message.delete()
-    user_dict[message.from_user.id] = await state.get_data()
-    date_begin, date_end = change_the_date(user_dict[message.from_user.id]["fill_date"])
-    button_yes = InlineKeyboardButton(
-        text='Да',
-        callback_data='yes'
-    )
-    button_no = InlineKeyboardButton(
-        text='Нет',
-        callback_data='no'
-    )
-    markup = InlineKeyboardMarkup(
-        inline_keyboard=[[button_yes],
-                         [button_no]]
-    )
-    if type(date_end) is str:
+    try:
+        user_dict[message.from_user.id] = await state.get_data()
+        date_begin, date_end = change_the_date(message.text)
+        if type(date_end) is datetime.date:
+            date = date_end - date_begin
+            for i in range(date.days):
+                if not check_date(date_begin, user_dict[message.from_user.id]['fill_id_house']):
+                    await message.answer(
+                        text='Даты заняты, проверьте календарь.\n\nЕсли вы хотите прервать '
+                             'заполнение брони - отправьте команду /cancel'
+                    )
+                    return False
+                date_begin += datetime.timedelta(days=1)
+        elif not check_date(date_begin, user_dict[message.from_user.id]['fill_id_house']):
+            await message.answer(
+                text='Дата занята, проверьте календарь.\n\nЕсли вы хотите прервать '
+                     'заполнение брони - отправьте команду /cancel'
+            )
+            return False
+
+        await state.set_state(FSMFillForm.confirm)
+    except Exception as Error:
+        print(Error)
         await message.answer(
-            text=f'Внести данные в базу?\n'
-                 f'Имя: {user_dict[message.from_user.id]["fill_name"]}\n'
-                 f'Дом: {user_dict[message.from_user.id]["fill_id_house"]}\n'
-                 f'Дата заезда: {date_begin}\n'
-                 f'Заезд продлится один день\n',
-            reply_markup=markup
-        )
-    else:
-        await message.answer(
-            text=f'Внести данные в базу?\n'
-                 f'Имя: {user_dict[message.from_user.id]["fill_name"]}\n'
-                 f'Дом: {user_dict[message.from_user.id]["fill_id_house"]}\n'
-                 f'Дата заезда: {date_begin}\n'
-                 f'Заезд продлится {date_end - date_begin}',
-            reply_markup=markup
+            text='Даты заняты, проверьте календарь.\n\nЕсли вы хотите прервать '
+                 'заполнение брони - отправьте команду /cancel'
         )
 
-    await state.set_state(FSMFillForm.confirm)
+    else:
+        await state.update_data(fill_date=message.text)
+        await message.delete()
+        user_dict[message.from_user.id] = await state.get_data()
+        date_begin, date_end = change_the_date(user_dict[message.from_user.id]["fill_date"])
+        button_yes = InlineKeyboardButton(
+            text='Да',
+            callback_data='yes'
+        )
+        button_no = InlineKeyboardButton(
+            text='Нет',
+            callback_data='no'
+        )
+        markup = InlineKeyboardMarkup(
+            inline_keyboard=[[button_yes],
+                             [button_no]]
+        )
+        if type(date_end) is str:
+            await message.answer(
+                text=f'Внести данные в базу?\n'
+                     f'Имя: {user_dict[message.from_user.id]["fill_name"]}\n'
+                     f'Дом: {user_dict[message.from_user.id]["fill_id_house"]}\n'
+                     f'Дата заезда: {date_begin}\n'
+                     f'Заезд продлится один день\n',
+                reply_markup=markup
+            )
+        else:
+            await message.answer(
+                text=f'Внести данные в базу?\n'
+                     f'Имя: {user_dict[message.from_user.id]["fill_name"]}\n'
+                     f'Дом: {user_dict[message.from_user.id]["fill_id_house"]}\n'
+                     f'Дата заезда: {date_begin}\n'
+                     f'Заезд продлится дней: {(date_end - date_begin).days}',
+                reply_markup=markup
+            )
 
 
 # Этот хэндлер будет срабатывать, если во время введения даты
@@ -188,14 +213,13 @@ async def process_fill_date(message: Message, state: FSMContext):
 @router.message(StateFilter(FSMFillForm.fill_date))
 async def warning_not_age(message: Message):
     await message.answer(
-        text='Введите корректные данные'
+        text='Введите корректные данные\n\nЕсли вы хотите прервать '
+             'заполнение брони - отправьте команду /cancel'
     )
 
 
 @router.callback_query(StateFilter(FSMFillForm.confirm), F.data.in_(['yes']))
 async def process_take_house(callback: CallbackQuery, state: FSMContext):
-    # Cохраняем пол (callback.data нажатой кнопки) в хранилище,
-    # по ключу "confirm"
     await state.update_data(confirm=callback.data)
     await callback.message.delete()
     date_begin, date_end = change_the_date(user_dict[callback.message.chat.id]["fill_date"])
@@ -205,13 +229,21 @@ async def process_take_house(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(
             text='Данные внесены в базу.'
         )
-        # Устанавливаем состояние ожидания загрузки фото
         await state.clear()
     except Exception as Error:
         print(Error)
         await callback.message.answer(
             text='Ошибка внесения в базу.'
         )
+
+
+@router.callback_query(StateFilter(FSMFillForm.confirm), F.data.in_(['no']))
+async def process_take_house(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
+    await callback.message.answer(
+        text='Что снова начать заполнение брони, введите /fillform'
+    )
+    await state.clear()
 
 
 # Этот хэндлер будет срабатывать, если во время подтверждения

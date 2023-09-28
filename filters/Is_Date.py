@@ -1,22 +1,45 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
+import re
 
 
 class HasUsernamesFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
-        if 8 <= len(message.text) <= 10:
-            if len(message.text.split('.')) == 3:
-                date = message.text.split('.')
-                if date[0].isdigit() and date[1].isdigit() and date[2].isdigit():
-                    if 1 <= int(date[0]) <= 31 and 1 <= int(date[1]) <= 12 and 2023 <= int(date[2]) <= 2100:
-                        return True
-        elif 19 <= len(message.text) <= 23:
-            if len(message.text.split(' - ')) == 2:
-                date = message.text.split(' - ')
-                date1 = date[0].split('.')
-                date2 = date[1].split('.')
-                if date1[0].isdigit() and date1[1].isdigit() and date1[2].isdigit() and date2[0].isdigit() and date2[1].isdigit() and date2[2].isdigit():
-                    if 1 <= int(date1[0]) <= 31 and 1 <= int(date1[1]) <= 12 and 2023 <= int(date1[2]) <= 2100 and 1 <= int(date2[0]) <= 31 and 1 <= int(date2[1]) <= 12 and 2023 <= int(date2[2]) <= 2100:
-                        return True
+        if " - " not in message.text:
+            if check_date_format(message.text):
+                return True
         else:
+
+            pattern = r"\d{2}\.\d{2}\.\d{4}\s-\s\d{2}\.\d{2}\.\d{4}"  # Паттерн для проверки формата
+            match = re.match(pattern, message.text)
+            if match:
+                date_parts = message.text.split(' - ')
+                start_date = date_parts[0]
+                end_date = date_parts[1]
+                if check_date_format(start_date) and check_date_format(end_date):
+                    return True
             return False
+
+
+def check_date_format(date):
+    pattern = r"\d{2}\.\d{2}\.\d{4}"  # Паттерн для проверки формата
+    match = re.match(pattern, date)
+    if match:
+        date_parts = date.split('.')
+        day = int(date_parts[0])
+        month = int(date_parts[1])
+        year = int(date_parts[2])
+        if month in [1, 3, 5, 7, 8, 10, 12]:
+            if day <= 31:
+                return True
+        elif month in [4, 6, 9, 11]:
+            if day <= 30:
+                return True
+        elif month == 2:
+            if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+                if day <= 29:
+                    return True
+            else:
+                if day <= 28:
+                    return True
+    return False
