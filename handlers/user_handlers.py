@@ -1,15 +1,18 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import Command, CommandStart
 from aiogram.types.web_app_info import WebAppInfo
 from json import loads
 
 from database.db_quick_commands import register_user
+from config_data.config import Config, load_config
 
 from lexicon.lexicon_ru import LEXICON
 
 
 router = Router()
+config: Config = load_config('.env')
+bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
 
 
 # Хэндлер команды /start
@@ -39,8 +42,12 @@ async def process_help_admin_command(message: Message):
 async def web_app(message: Message):
     res = loads(message.web_app_data.data)
     await message.answer(f'Name: {res["name"]}\nPhone: {res["phone"]}\n')
+    for i in config.tg_bot.admin_ids:
+        await bot.send_message(chat_id=i, text='Новая бронь!')
 
 
-@router.message(F.content_type == 'photo')
-async def web_app(message: Message):
-    await message.answer(text='Интересное фото :)')
+@router.message(Command(commands='test'))
+async def process_help_command(message: Message):
+    await message.answer(text=LEXICON['/test'])
+    for i in config.tg_bot.admin_ids:
+        await bot.send_message(chat_id=i, text='Тестовое сообщение')

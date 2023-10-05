@@ -35,11 +35,12 @@ class Booking(Base):
     __tablename__ = 'booking'
 
     id = Column(BigInteger, primary_key=True)       # Ид брони
-    id_house = Column(Integer)                      # Ид дома
-    id_person = Column(BigInteger)                  # Ид пользователя
+    id_house = Column(Integer, ForeignKey('house.id'))                      # Ид дома
+    id_person = Column(BigInteger, ForeignKey('users.id'))                  # Ид пользователя
     name_person = Column(String)                    # Имя
     id_payments = Column(Integer, ForeignKey("payments.id"))                   # Ид платежа
     date = Column(Date)                             # Дата
+    phone = Column(String)                          # Номер телефона
     status_confirm = Column(Boolean, default=None)  # Статус брони
     check_in = Column(Boolean, default=None)        # Статус заезда
     end = Column(Boolean, default=False)            # Конец
@@ -51,8 +52,8 @@ class Payments(Base):
     __tablename__ = 'payments'
 
     id = Column(BigInteger, primary_key=True)       # Ид платежа
-    id_house = Column(Integer)                      # Ид дома
-    id_person = Column(BigInteger)                  # Ид пользователя
+    id_house = Column(Integer, ForeignKey('house.id'))                      # Ид дома
+    id_person = Column(BigInteger, ForeignKey('users.id'))                  # Ид пользователя
     sending = Column(Boolean)                       # Отправка данных для платежа (админом)
     status = Column(Boolean, default=False)         # Статус платежа (меняется пользователем для проверки)
     confirm = Column(Boolean)                       # Подтверждение платежа (админом)

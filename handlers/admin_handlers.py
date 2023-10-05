@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton,\
-    InlineKeyboardMarkup, CallbackQuery
+    InlineKeyboardMarkup, CallbackQuery, FSInputFile
 from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.types.web_app_info import WebAppInfo
 
@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from states.states import FSMFillForm
 
-from database.db_quick_commands import register_user, get_active_house, get_booking, check_date
+from database.db_quick_commands import register_user, get_active_house, get_booking, check_date, csv_save
 from json import loads
 
 from utils.utils import change_the_date
@@ -67,13 +67,20 @@ async def process_cancel_command(message: Message):
     )
 
 
+@router.message(Command(commands='csv'))
+async def process_cancel_command(message: Message):
+    csv_save()
+    file = FSInputFile("mydump.csv")
+    await message.reply_document(file)
+
+
 # Этот хэндлер будет срабатывать на команду "/cancel" в любых состояниях,
 # кроме состояния по умолчанию, и отключать машину состояний
 @router.message(Command(commands='cancel'), ~StateFilter(default_state))
 async def process_cancel_command_state(message: Message, state: FSMContext):
     await message.answer(
-        text='Вы вышли из машины состояний\n\n'
-             'Чтобы снова перейти к заполнению анкеты - '
+        text='Вы прервали заполнение брони\n\n'
+             'Чтобы снова перейти к заполнению  - '
              'отправьте команду /fillform'
     )
     # Сбрасываем состояние и очищаем данные, полученные внутри состояний
@@ -85,7 +92,7 @@ async def process_cancel_command_state(message: Message, state: FSMContext):
 @router.message(Command(commands='fillform'))
 async def process_fillform_command(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer(text='Пожалуйста, введите имя гостя')
+    await message.answer(text='Пожалуйста, введите имя гостя\n\nДля отмены жми /cancel')
     # Устанавливаем состояние ожидания ввода имени
     await state.set_state(FSMFillForm.fill_name)
 
@@ -105,7 +112,8 @@ async def process_name_sent(message: Message, state: FSMContext):
         inline_keyboard=[buttons]
     )
 
-    await message.answer(text='Спасибо!\n\nА теперь выбери дом', reply_markup=markup)
+    await message.answer(text='Спасибо!\n\nА теперь выбери дом, просто нажми на кнопку снизу\n\nДля отмены жми /cancel',
+                         reply_markup=markup)
     await state.set_state(FSMFillForm.fill_id_house)
 
 
@@ -126,7 +134,8 @@ async def process_take_house(callback: CallbackQuery, state: FSMContext):
     await state.update_data(fill_id_house=callback.data)
     await callback.message.delete()
     await callback.message.answer(
-        text='Спасибо! А теперь введите даты (один день: "23.09.2023" или период "23.09.2023 - 25.09.2023")'
+        text='Спасибо! А теперь введите даты (один день: "23.09.2023" или период "23.09.2023 - 25.09.2023")\n\n'
+             'Для отмены жми /cancel'
     )
     await state.set_state(FSMFillForm.fill_date)
 

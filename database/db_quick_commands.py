@@ -1,6 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 from database.database import User, House, Booking, Payments, session
 import datetime
+import csv
 
 
 def register_user(message, admin):
@@ -54,3 +55,29 @@ def check_date(date_check, house_id):
         return False
     else:
         return True
+
+
+def csv_save():
+    with open('mydump.csv', 'w', encoding='utf8', newline='') as outfile:
+        dt_now = datetime.date.today()
+        names = ["Ид", "Дом", "Ид_пол", "Имя", "Платеж", "Дата", "Телефон", "Подтверждение", "Въезд",
+                 "Выезд"]
+        outcsv = csv.writer(outfile, delimiter=",")
+        outcsv.writerow(names)
+        records = session.query(Booking).filter(Booking.date >= dt_now)
+        [outcsv.writerow([getattr(curr, column.name) for column in Booking.__mapper__.columns]) for curr in records]
+        return
+
+
+def change_status_active(message, change: bool):
+    user = session.query(User).filter(User.id == message.from_user.id).first()
+    user.active = change
+
+    session.add(user)
+
+    try:
+        session.commit()
+        return True
+    except IntegrityError:
+        session.rollback()
+        return False
