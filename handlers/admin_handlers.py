@@ -14,12 +14,14 @@ from json import loads
 from utils.utils import change_the_date
 from filters.is_admin import IsAdmin
 from filters.Is_Date import HasUsernamesFilter
+from keyboards.menu_buttons import create_main_menu
 from lexicon.lexicon_ru import LEXICON
 
 import datetime
 
 router = Router()
 router.message.filter(IsAdmin())
+router.callback_query.filter(IsAdmin())
 
 user_dict = {}
 
@@ -72,6 +74,23 @@ async def process_cancel_command(message: Message):
     csv_save()
     file = FSInputFile("mydump.csv")
     await message.reply_document(file)
+
+
+@router.message(Command(commands='menu'))
+async def process_menu_command(message: Message):
+    await message.answer(
+        text=LEXICON['menu_admin'],
+        reply_markup=create_main_menu('info', 'show_my_bookings', 'admins')
+    )
+
+
+# Этот хэндлер будет срабатывать на нажатие кнопки "На главную"
+@router.callback_query(F.data == 'menu')
+async def process_menu_command(callback: CallbackQuery):
+    await callback.message.edit_text(
+        text=LEXICON['menu_admin'],
+        reply_markup=create_main_menu('info', 'show_my_bookings', 'admins')
+    )
 
 
 # Этот хэндлер будет срабатывать на команду "/cancel" в любых состояниях,

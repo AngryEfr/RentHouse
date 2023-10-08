@@ -25,9 +25,11 @@ def get_active_house():
 
 def get_booking(message, name, id_house, date_begin, date_end):
     if type(date_end) is datetime.date:
+        date_now = datetime.date.today()
         bookings = []
         date = date_end - date_begin
-        payments = Payments(id_person=int(message.chat.id), id_house=id_house, comment=date.days)
+        payments = Payments(id_person=int(message.chat.id), id_house=id_house, comment=date.days, date_pay=date_now,
+                            date_begin=date_begin)
         for i in range(date.days):
             booking = Booking(id_person=int(message.chat.id), name_person=name, id_house=id_house, date=date_begin)
             bookings.append(booking)
@@ -36,7 +38,9 @@ def get_booking(message, name, id_house, date_begin, date_end):
         session.add(payments)
 
     else:
-        payments = Payments(id_person=int(message.chat.id), id_house=id_house, comment='1')
+        date_now = datetime.date.today()
+        payments = Payments(id_person=int(message.chat.id), id_house=id_house, date_pay=date_now, date_begin=date_begin,
+                            comment='1')
         booking = Booking(id_person=int(message.chat.id), name_person=name, id_house=id_house, date=date_begin)
         payments.bookings = [booking]
         session.add(payments)

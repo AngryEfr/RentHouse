@@ -1,11 +1,12 @@
 from aiogram import Router, F, Bot
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from aiogram.types.web_app_info import WebAppInfo
 from json import loads
 
-from database.db_quick_commands import register_user
+from database.db_quick_commands import register_user, get_active_house
 from config_data.config import Config, load_config
+from keyboards.menu_buttons import create_main_menu, create_info_menu
 
 from lexicon.lexicon_ru import LEXICON
 
@@ -46,8 +47,38 @@ async def web_app(message: Message):
         await bot.send_message(chat_id=i, text='Новая бронь!')
 
 
+@router.message(Command(commands='menu'))
+async def process_menu_command(message: Message):
+    await message.answer(
+        text=LEXICON['menu'],
+        reply_markup=create_main_menu('info', 'show_my_bookings')
+    )
+
+
 @router.message(Command(commands='test'))
 async def process_help_command(message: Message):
     await message.answer(text=LEXICON['/test'])
     for i in config.tg_bot.admin_ids:
         await bot.send_message(chat_id=i, text='Тестовое сообщение')
+
+
+# Этот хэндлер будет срабатывать на нажатие кнопки "Информация о доме"
+@router.callback_query(F.data == 'info')
+async def get_info_house(callback: CallbackQuery):
+    active_house = get_active_house()
+    houses = []
+    for i in active_house:
+        houses.append(i.name + '/*/*/*' + i.link)
+    await callback.message.edit_text(
+        text=LEXICON['info_house'],
+        reply_markup=create_info_menu(*houses)
+    )
+
+
+# Этот хэндлер будет срабатывать на нажатие кнопки "На главную"
+@router.callback_query(F.data == 'menu')
+async def process_menu_command(callback: CallbackQuery):
+    await callback.message.edit_text(
+        text=LEXICON['menu'],
+        reply_markup=create_main_menu('info', 'show_my_bookings')
+    )
