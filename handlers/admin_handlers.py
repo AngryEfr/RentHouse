@@ -14,7 +14,7 @@ from json import loads
 from utils.utils import change_the_date
 from filters.is_admin import IsAdmin
 from filters.Is_Date import HasUsernamesFilter
-from keyboards.menu_buttons import create_main_menu
+from keyboards.menu_buttons import create_main_menu, create_info_menu
 from lexicon.lexicon_ru import LEXICON
 
 import datetime
@@ -63,17 +63,24 @@ async def web_app(message: Message, state: FSMContext):
 @router.message(Command(commands='cancel'), StateFilter(default_state))
 async def process_cancel_command(message: Message):
     await message.answer(
-        text='Отменять нечего. Вы вне машины состояний\n\n'
+        text='Отменять нечего.\n\n'
              'Чтобы перейти к заполнению брони - '
-             'отправьте команду /fillform'
+             'зайдите в меню администратора.'
     )
 
 
-@router.message(Command(commands='csv'))
-async def process_cancel_command(message: Message):
+@router.callback_query(F.data == 'csv')
+async def process_cancel_command(callback: CallbackQuery):
     csv_save()
     file = FSInputFile("mydump.csv")
-    await message.reply_document(file)
+    await callback.message.reply_document(file)
+
+
+# @router.message(Command(commands='test'))
+# async def process_cancel_command(message: Message):
+#     test_save()
+#     file = FSInputFile("mydump.csv")
+#     await message.reply_document(file)
 
 
 @router.message(Command(commands='menu'))
@@ -93,6 +100,26 @@ async def process_menu_command(callback: CallbackQuery):
     )
 
 
+@router.callback_query(F.data == 'info')
+async def get_info_house(callback: CallbackQuery):
+    active_house = get_active_house()
+    houses = []
+    for i in active_house:
+        houses.append(i.name + '/*/*/*' + i.link)
+    await callback.message.edit_text(
+        text=LEXICON['info_house'],
+        reply_markup=create_info_menu(*houses)
+    )
+
+
+@router.callback_query(F.data == 'admins')
+async def process_menu_command(callback: CallbackQuery):
+    await callback.message.edit_text(
+        text=LEXICON['admins'],
+        reply_markup=create_main_menu('fillform', 'csv', 'menu')
+    )
+
+
 # Этот хэндлер будет срабатывать на команду "/cancel" в любых состояниях,
 # кроме состояния по умолчанию, и отключать машину состояний
 @router.message(Command(commands='cancel'), ~StateFilter(default_state))
@@ -100,7 +127,7 @@ async def process_cancel_command_state(message: Message, state: FSMContext):
     await message.answer(
         text='Вы прервали заполнение брони\n\n'
              'Чтобы снова перейти к заполнению  - '
-             'отправьте команду /fillform'
+             'зайдите в меню администратора.'
     )
     # Сбрасываем состояние и очищаем данные, полученные внутри состояний
     await state.clear()
@@ -108,10 +135,10 @@ async def process_cancel_command_state(message: Message, state: FSMContext):
 
 # Этот хэндлер будет срабатывать на команду /fillform
 # и переводить бота в состояние ожидания ввода имени
-@router.message(Command(commands='fillform'))
-async def process_fillform_command(message: Message, state: FSMContext):
+@router.callback_query(F.data == 'fillform')
+async def process_fillform_command(callback: CallbackQuery, state: FSMContext):
     await state.clear()
-    await message.answer(text='Пожалуйста, введите имя гостя\n\nДля отмены жми /cancel')
+    await callback.message.answer(text='Пожалуйста, введите имя гостя\n\nДля отмены жми /cancel')
     # Устанавливаем состояние ожидания ввода имени
     await state.set_state(FSMFillForm.fill_name)
 

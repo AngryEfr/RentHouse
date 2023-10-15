@@ -55,11 +55,11 @@ async def process_menu_command(message: Message):
     )
 
 
-@router.message(Command(commands='test'))
-async def process_help_command(message: Message):
-    await message.answer(text=LEXICON['/test'])
-    for i in config.tg_bot.admin_ids:
-        await bot.send_message(chat_id=i, text='Тестовое сообщение')
+# @router.message(Command(commands='test'))
+# async def process_help_command(message: Message):
+#     await message.answer(text=LEXICON['/test'])
+#     for i in config.tg_bot.admin_ids:
+#         await bot.send_message(chat_id=i, text='Тестовое сообщение')
 
 
 # Этот хэндлер будет срабатывать на нажатие кнопки "Информация о доме"

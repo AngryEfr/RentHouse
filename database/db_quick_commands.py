@@ -61,16 +61,16 @@ def check_date(date_check, house_id):
         return True
 
 
-def csv_save():
-    with open('mydump.csv', 'w', encoding='utf8', newline='') as outfile:
-        dt_now = datetime.date.today()
-        names = ["Ид", "Дом", "Ид_пол", "Имя", "Платеж", "Дата", "Телефон", "Подтверждение", "Въезд",
-                 "Выезд"]
-        outcsv = csv.writer(outfile, delimiter=",")
-        outcsv.writerow(names)
-        records = session.query(Booking).filter(Booking.date >= dt_now)
-        [outcsv.writerow([getattr(curr, column.name) for column in Booking.__mapper__.columns]) for curr in records]
-        return
+# def csv_save():
+#     with open('mydump.csv', 'w', encoding='utf8', newline='') as outfile:
+#         dt_now = datetime.date.today()
+#         names = ["Ид", "Дом", "Ид_пол", "Имя", "Платеж", "Дата", "Телефон", "Подтверждение", "Въезд",
+#                  "Выезд"]
+#         outcsv = csv.writer(outfile, delimiter=",")
+#         outcsv.writerow(names)
+#         records = session.query(Booking).filter(Booking.date >= dt_now)
+#         [outcsv.writerow([getattr(curr, column.name) for column in Booking.__mapper__.columns]) for curr in records]
+#         return
 
 
 def change_status_active(message, change: bool):
@@ -85,3 +85,20 @@ def change_status_active(message, change: bool):
     except IntegrityError:
         session.rollback()
         return False
+
+
+def csv_save():
+    with open('mydump.csv', 'w', encoding='utf8', newline='') as outfile:
+        dt_now = datetime.date.today()
+        names = ["Ид", "Дом", "Ид_пол", "Имя", "Платеж", "Дата", "Телефон", "Подтверждение", "Въезд",
+                 "Выезд", 'Ид платежа', 'Дом', 'Имя', 'Дата брони', 'Дата заезда', 'Отправка увед.',
+                 'Статус предоплаты', 'Подтверждение', 'Количество дней']
+        outcsv = csv.writer(outfile, delimiter=",")
+        outcsv.writerow(names)
+        query = session.query(Booking, Payments).filter(Booking.date >= dt_now)
+        query = query.join(Payments, Booking.id_payments == Payments.id)
+        records = query.all()
+        for record in records:
+            outcsv.writerow([getattr(record[0], column.name) for column in Booking.__mapper__.columns] +
+                            [getattr(record[1], column.name) for column in Payments.__mapper__.columns])
+        return

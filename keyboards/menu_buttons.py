@@ -19,9 +19,4 @@ def create_info_menu(*buttons: str) -> InlineKeyboardMarkup:
         button = button.split('/*/*/*')
         kb_builder.row(InlineKeyboardButton(text=button[0], url=button[1]), width=1)
     kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
-    # kb_builder.row(*[InlineKeyboardButton(
-    #     text=LEXICON_BUTTONS[button] if button in LEXICON_BUTTONS else button,
-    #     callback_data=button) for button in buttons],
-    #                width=1
-    # )
     return kb_builder.as_markup()
