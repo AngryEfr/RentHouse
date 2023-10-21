@@ -3,19 +3,20 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, InlineKe
     InlineKeyboardMarkup, CallbackQuery, FSInputFile
 from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.types.web_app_info import WebAppInfo
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from states.states import FSMFillForm
 
-from database.db_quick_commands import register_user, get_active_house, get_booking, check_date, csv_save
+from database.db_quick_commands import register_user, get_active_house, get_booking, check_date, csv_save, get_bookings
 from json import loads
 
 from utils.utils import change_the_date
 from filters.is_admin import IsAdmin
 from filters.Is_Date import HasUsernamesFilter
 from keyboards.menu_buttons import create_main_menu, create_info_menu
-from lexicon.lexicon_ru import LEXICON
+from lexicon.lexicon_ru import LEXICON, LEXICON_BUTTONS
 
 import datetime
 
@@ -116,8 +117,62 @@ async def get_info_house(callback: CallbackQuery):
 async def process_menu_command(callback: CallbackQuery):
     await callback.message.edit_text(
         text=LEXICON['admins'],
-        reply_markup=create_main_menu('fillform', 'csv', 'menu')
+        reply_markup=create_main_menu('fillform', 'csv', 'bookings',  'menu')
     )
+
+
+# Обработка команды bookings
+@router.callback_query(F.data == 'bookings')
+async def get_bookings_list(callback: CallbackQuery):
+    i = 0
+    bookings = get_bookings()
+    if bookings:
+        result = bookings[i]
+        kb_builder = InlineKeyboardBuilder()
+        if len(bookings) > i:
+            button1 = InlineKeyboardButton(text=LEXICON_BUTTONS['next'], callback_data=str(i + 1))
+            kb_builder.add(button1)
+        kb_builder.row(InlineKeyboardButton(text='Выслать реквизиты', callback_data='requisites ' + str(result[2])),
+                       width=1)
+        kb_builder.row(InlineKeyboardButton(text='Подтвердить', callback_data='confirm ' + str(result[2])), width=1)
+        kb_builder.row(InlineKeyboardButton(text='Отменить', callback_data='cancel_book ' + str(result[2])), width=1)
+        kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
+        await callback.message.edit_text(
+            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nДом №{result[1]}\nДата брони: {result[3]}\n'
+                 f'Дата заселения: {result[4]}\nОплата: {result[6]}\nПодтверждение: {result[7]}\n'
+                 f'Количество дней: {result[8]}',
+            reply_markup=kb_builder.as_markup()
+        )
+    else:
+        await callback.message.answer('Пока никто не бронировал.')
+
+
+@router.callback_query(F.data.isdigit(), StateFilter(default_state))
+async def get_bookings_list(callback: CallbackQuery):
+    i = int(callback.data)
+    bookings = get_bookings()
+    if bookings:
+        result = bookings[i]
+        kb_builder = InlineKeyboardBuilder()
+        if i > 0:
+            button2 = InlineKeyboardButton(text=LEXICON_BUTTONS['perv'], callback_data=str(i - 1))
+            kb_builder.add(button2)
+        if len(bookings) > i + 1:
+            button1 = InlineKeyboardButton(text=LEXICON_BUTTONS['next'], callback_data=str(i + 1))
+            kb_builder.add(button1)
+        kb_builder.row(InlineKeyboardButton(text='Выслать реквизиты', callback_data='requisites ' + str(result[2])),
+                       width=1)
+        kb_builder.row(InlineKeyboardButton(text='Подтвердить', callback_data='confirm ' + str(result[2])), width=1)
+        kb_builder.row(InlineKeyboardButton(text='Отменить', callback_data='cancel_book ' + str(result[2])), width=1)
+        kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
+        await callback.message.edit_text(
+            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nДом №{result[1]}\nДата брони: {result[3]}\n'
+                 f'Дата заселения: {result[4]}\nОплата: {result[6]}\nПодтверждение: {result[7]}\n'
+                 f'Количество дней: {result[8]}',
+            reply_markup=kb_builder.as_markup()
+        )
+    else:
+        await callback.message.answer('Пока никто не бронировал.')
 
 
 # Этот хэндлер будет срабатывать на команду "/cancel" в любых состояниях,
@@ -290,6 +345,7 @@ async def process_take_house(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(
             text='Ошибка внесения в базу.'
         )
+        await state.clear()
 
 
 @router.callback_query(StateFilter(FSMFillForm.confirm), F.data.in_(['no']))

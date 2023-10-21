@@ -1,14 +1,15 @@
 from aiogram import Router, F, Bot
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, CallbackQuery
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, CallbackQuery, InlineKeyboardButton
 from aiogram.filters import Command, CommandStart
 from aiogram.types.web_app_info import WebAppInfo
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from json import loads
 
-from database.db_quick_commands import register_user, get_active_house
+from database.db_quick_commands import register_user, get_active_house, get_user_bookings
 from config_data.config import Config, load_config
 from keyboards.menu_buttons import create_main_menu, create_info_menu
 
-from lexicon.lexicon_ru import LEXICON
+from lexicon.lexicon_ru import LEXICON, LEXICON_BUTTONS
 
 
 router = Router()
@@ -82,3 +83,48 @@ async def process_menu_command(callback: CallbackQuery):
         text=LEXICON['menu'],
         reply_markup=create_main_menu('info', 'show_my_bookings')
     )
+
+
+@router.callback_query(F.data == 'show_my_bookings')
+async def get_bookings_list(callback: CallbackQuery):
+    i = 0
+    bookings = get_user_bookings(callback.from_user.id)
+    if bookings:
+        result = bookings[i]
+        kb_builder = InlineKeyboardBuilder()
+        if len(bookings) > i:
+            button1 = InlineKeyboardButton(text=LEXICON_BUTTONS['next'], callback_data=str(i + 1))
+            kb_builder.add(button1)
+        kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
+        await callback.message.edit_text(
+            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nДом №{result[1]}\nДата брони: {result[3]}\n'
+                 f'Дата заселения: {result[4]}\nОплата: {result[6]}\nПодтверждение: {result[7]}\n'
+                 f'Количество дней: {result[8]}',
+            reply_markup=kb_builder.as_markup()
+        )
+    else:
+        await callback.message.answer('Вы еще не бронировали.')
+
+
+@router.callback_query(F.data.isdigit())
+async def get_bookings_list(callback: CallbackQuery):
+    i = int(callback.data)
+    bookings = get_user_bookings(callback.from_user.id)
+    if bookings:
+        result = bookings[i]
+        kb_builder = InlineKeyboardBuilder()
+        if i > 0:
+            button2 = InlineKeyboardButton(text=LEXICON_BUTTONS['perv'], callback_data=str(i - 1))
+            kb_builder.add(button2)
+        if len(bookings) > i + 1:
+            button1 = InlineKeyboardButton(text=LEXICON_BUTTONS['next'], callback_data=str(i + 1))
+            kb_builder.add(button1)
+        kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
+        await callback.message.edit_text(
+            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nДом №{result[1]}\nДата брони: {result[3]}\n'
+                 f'Дата заселения: {result[4]}\nОплата: {result[6]}\nПодтверждение: {result[7]}\n'
+                 f'Количество дней: {result[8]}',
+            reply_markup=kb_builder.as_markup()
+        )
+    else:
+        await callback.message.answer('Вы еще не бронировали')

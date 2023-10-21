@@ -102,3 +102,29 @@ def csv_save():
             outcsv.writerow([getattr(record[0], column.name) for column in Booking.__mapper__.columns] +
                             [getattr(record[1], column.name) for column in Payments.__mapper__.columns])
         return
+
+
+# Функция считывания платежей
+def get_bookings():
+    date_now = datetime.date.today()
+    bookings = session.query(Payments).filter(Payments.date_begin >= date_now).order_by(Payments.date_begin)
+    result = list()
+    if bookings:
+        for i in bookings:
+            result.append([getattr(i, column.name) for column in Payments.__mapper__.columns])
+        return result
+    else:
+        return False
+
+
+def get_user_bookings(user_id):
+    date_now = datetime.date.today()
+    bookings = session.query(Payments).filter(Payments.date_begin >= date_now, Payments.id_person == user_id).order_by(
+        Payments.date_begin)
+    result = list()
+    if bookings:
+        for i in bookings:
+            result.append([getattr(i, column.name) for column in Payments.__mapper__.columns])
+        return result
+    else:
+        return False
