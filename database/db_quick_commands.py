@@ -23,27 +23,19 @@ def get_active_house():
     return house
 
 
-def get_booking(message, name, id_house, date_begin, date_end):
-    if type(date_end) is datetime.date:
-        date_now = datetime.date.today()
-        bookings = []
-        date = date_end - date_begin
-        payments = Payments(id_person=int(message.chat.id), id_house=id_house, comment=date.days, date_pay=date_now,
-                            date_begin=date_begin)
-        for i in range(date.days):
-            booking = Booking(id_person=int(message.chat.id), name_person=name, id_house=id_house, date=date_begin)
-            bookings.append(booking)
-            date_begin += datetime.timedelta(days=1)
-        payments.bookings = bookings
-        session.add(payments)
-
-    else:
-        date_now = datetime.date.today()
-        payments = Payments(id_person=int(message.chat.id), id_house=id_house, date_pay=date_now, date_begin=date_begin,
-                            comment='1')
+def get_booking(message, name, id_house, date_begin, date_end, phone):
+    username = message.from_user.username if message.from_user.username else None
+    date_now = datetime.date.today()
+    bookings = []
+    date = date_end - date_begin
+    payments = Payments(id_person=int(message.chat.id), username=username, id_house=id_house, comment=date.days, date_pay=date_now,
+                        date_begin=date_begin, phone=phone)
+    for i in range(date.days):
         booking = Booking(id_person=int(message.chat.id), name_person=name, id_house=id_house, date=date_begin)
-        payments.bookings = [booking]
-        session.add(payments)
+        bookings.append(booking)
+        date_begin += datetime.timedelta(days=1)
+    payments.bookings = bookings
+    session.add(payments)
 
     try:
         session.commit()
@@ -59,18 +51,6 @@ def check_date(date_check, house_id):
         return False
     else:
         return True
-
-
-# def csv_save():
-#     with open('mydump.csv', 'w', encoding='utf8', newline='') as outfile:
-#         dt_now = datetime.date.today()
-#         names = ["Ид", "Дом", "Ид_пол", "Имя", "Платеж", "Дата", "Телефон", "Подтверждение", "Въезд",
-#                  "Выезд"]
-#         outcsv = csv.writer(outfile, delimiter=",")
-#         outcsv.writerow(names)
-#         records = session.query(Booking).filter(Booking.date >= dt_now)
-#         [outcsv.writerow([getattr(curr, column.name) for column in Booking.__mapper__.columns]) for curr in records]
-#         return
 
 
 def change_status_active(message, change: bool):
@@ -104,7 +84,7 @@ def csv_save():
         return
 
 
-# Функция считывания платежей
+# Функция считывания Payments
 def get_bookings():
     date_now = datetime.date.today()
     bookings = session.query(Payments).filter(Payments.date_begin >= date_now).order_by(Payments.date_begin)

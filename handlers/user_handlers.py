@@ -4,12 +4,15 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types.web_app_info import WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from json import loads
+from aiogram.fsm.context import FSMContext
 
-from database.db_quick_commands import register_user, get_active_house, get_user_bookings
+from database.db_quick_commands import register_user, get_active_house, get_user_bookings, get_booking
 from config_data.config import Config, load_config
 from keyboards.menu_buttons import create_main_menu, create_info_menu
 
 from lexicon.lexicon_ru import LEXICON, LEXICON_BUTTONS
+
+import datetime
 
 
 router = Router()
@@ -34,7 +37,9 @@ async def process_help_command(message: Message):
 @router.message(Command(commands='booking'))
 async def process_help_admin_command(message: Message):
     markup = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Перейти к бронированию',
-                                                           web_app=WebAppInfo(url='https://stepik.org'))]],
+                                                           web_app=WebAppInfo(
+                                                               url='https://angryefr.github.io/testsite/'
+                                                           ))]],
                                  resize_keyboard=True)
     await message.answer(text=LEXICON['/booking'], reply_markup=markup)
 
@@ -43,9 +48,16 @@ async def process_help_admin_command(message: Message):
 @router.message(F.content_type == 'web_app_data')
 async def web_app(message: Message):
     res = loads(message.web_app_data.data)
-    await message.answer(f'Name: {res["name"]}\nPhone: {res["phone"]}\n')
-    for i in config.tg_bot.admin_ids:
-        await bot.send_message(chat_id=i, text='Новая бронь!')
+    res['dateIn'] = datetime.datetime.strptime(res['dateIn'], "%Y-%m-%d").date()
+    res['dateOut'] = datetime.datetime.strptime(res['dateOut'], "%Y-%m-%d").date()
+    try:
+        get_booking(message, res['name'], '1', res["dateIn"], res['dateOut'], res['phone'])
+    except Exception as Error:
+        print(Error)
+    else:
+        await message.answer(f'Ваша бронь отправлена. Ожидайте.')
+        for i in config.tg_bot.admin_ids:
+            await bot.send_message(chat_id=i, text='Новая бронь!')
 
 
 @router.message(Command(commands='menu'))
@@ -86,22 +98,24 @@ async def process_menu_command(callback: CallbackQuery):
 
 
 @router.callback_query(F.data == 'show_my_bookings')
-async def get_bookings_list(callback: CallbackQuery):
+async def get_bookings_list(callback: CallbackQuery, state: FSMContext):
     i = 0
     bookings = get_user_bookings(callback.from_user.id)
     if bookings:
         result = bookings[i]
         kb_builder = InlineKeyboardBuilder()
-        if len(bookings) > i:
+        if len(bookings) > i+1:
             button1 = InlineKeyboardButton(text=LEXICON_BUTTONS['next'], callback_data=str(i + 1))
             kb_builder.add(button1)
         kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
         await callback.message.edit_text(
-            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nДом №{result[1]}\nДата брони: {result[3]}\n'
-                 f'Дата заселения: {result[4]}\nОплата: {result[6]}\nПодтверждение: {result[7]}\n'
-                 f'Количество дней: {result[8]}',
+            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nЛогин: @{result[3]}\nДом №{result[1]}\nДата брони: '
+                 f'{result[4]}\n'
+                 f'Дата заселения: {result[5]}\nТелефон: {result[6]}\nОплата: {result[8]}\nПодтверждение: {result[9]}\n'
+                 f'Количество дней: {result[10]}',
             reply_markup=kb_builder.as_markup()
         )
+        await state.clear()
     else:
         await callback.message.answer('Вы еще не бронировали.')
 
@@ -121,9 +135,10 @@ async def get_bookings_list(callback: CallbackQuery):
             kb_builder.add(button1)
         kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
         await callback.message.edit_text(
-            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nДом №{result[1]}\nДата брони: {result[3]}\n'
-                 f'Дата заселения: {result[4]}\nОплата: {result[6]}\nПодтверждение: {result[7]}\n'
-                 f'Количество дней: {result[8]}',
+            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nЛогин: @{result[3]}\nДом №{result[1]}\nДата брони: '
+                 f'{result[4]}\n'
+                 f'Дата заселения: {result[5]}\nТелефон: {result[6]}\nОплата: {result[8]}\nПодтверждение: {result[9]}\n'
+                 f'Количество дней: {result[10]}',
             reply_markup=kb_builder.as_markup()
         )
     else:

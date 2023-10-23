@@ -6,7 +6,4 @@ storage = MemoryStorage()
 
 
 class FSMFillForm(StatesGroup):
-    fill_name = State()
-    fill_id_house = State()
-    fill_date = State()
-    confirm = State()
+    show_bookings = State()

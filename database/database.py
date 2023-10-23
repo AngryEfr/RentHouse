@@ -40,7 +40,6 @@ class Booking(Base):
     name_person = Column(String)                                            # Имя
     id_payments = Column(Integer, ForeignKey("payments.id"))                # Ид платежа
     date = Column(Date)                                                     # Дата
-    phone = Column(String)                                                  # Номер телефона
     status_confirm = Column(Boolean, default=None)                          # Статус брони
     check_in = Column(Boolean, default=None)                                # Статус заезда
     end = Column(Boolean, default=False)                                    # Конец
@@ -54,8 +53,10 @@ class Payments(Base):
     id = Column(BigInteger, primary_key=True)                               # Ид платежа
     id_house = Column(Integer, ForeignKey('house.id'))                      # Ид дома
     id_person = Column(BigInteger, ForeignKey('users.id'))                  # Ид пользователя
+    username = Column(String)
     date_pay = Column(Date)                                                 # Дата платежа
     date_begin = Column(Date)                                               # Дата заселения
+    phone = Column(String)                                                  # Номер телефона
     sending = Column(Boolean)                                               # Отправка данных для платежа (админом)
     status = Column(Boolean, default=False)                                 # Статус платежа (для проверки)
     confirm = Column(Boolean)                                               # Подтверждение платежа (админом)
