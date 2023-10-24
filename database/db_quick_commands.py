@@ -28,8 +28,8 @@ def get_booking(message, name, id_house, date_begin, date_end, phone):
     date_now = datetime.date.today()
     bookings = []
     date = date_end - date_begin
-    payments = Payments(id_person=int(message.chat.id), username=username, id_house=id_house, comment=date.days, date_pay=date_now,
-                        date_begin=date_begin, phone=phone)
+    payments = Payments(id_person=int(message.chat.id), username=username, id_house=id_house, comment=date.days,
+                        date_pay=date_now, date_begin=date_begin, phone=phone)
     for i in range(date.days):
         booking = Booking(id_person=int(message.chat.id), name_person=name, id_house=id_house, date=date_begin)
         bookings.append(booking)
@@ -70,8 +70,8 @@ def change_status_active(message, change: bool):
 def csv_save():
     with open('mydump.csv', 'w', encoding='utf8', newline='') as outfile:
         dt_now = datetime.date.today()
-        names = ["Ид", "Дом", "Ид_пол", "Имя", "Платеж", "Дата", "Телефон", "Подтверждение", "Въезд",
-                 "Выезд", 'Ид платежа', 'Дом', 'Имя', 'Дата брони', 'Дата заезда', 'Отправка увед.',
+        names = ["Ид", "Дом", "Ид_пол", "Имя", "Платеж", "Дата", "Подтверждение", "Въезд",
+                 "Выезд", 'Ид платежа', 'Дом', 'Имя', 'Логин', 'Дата брони', 'Дата заезда', "Телефон", 'Отправка увед.',
                  'Статус предоплаты', 'Подтверждение', 'Количество дней']
         outcsv = csv.writer(outfile, delimiter=",")
         outcsv.writerow(names)
@@ -81,6 +81,20 @@ def csv_save():
         for record in records:
             outcsv.writerow([getattr(record[0], column.name) for column in Booking.__mapper__.columns] +
                             [getattr(record[1], column.name) for column in Payments.__mapper__.columns])
+        return
+
+
+def csv_save_confirmed():
+    with open('mydump.csv', 'w', encoding='utf8', newline='') as outfile:
+        dt_now = datetime.date.today()
+        names = ['Ид платежа', 'Дом', 'Имя', 'Логин', 'Дата брони', 'Дата заезда', "Телефон", 'Отправка увед.',
+                 'Статус предоплаты', 'Подтверждение', 'Количество дней']
+        outcsv = csv.writer(outfile, delimiter=",")
+        outcsv.writerow(names)
+        query = session.query(Payments).filter(Payments.date_begin >= dt_now).\
+            filter(Payments.confirm).order_by(Payments.date_begin)
+        for record in query:
+            outcsv.writerow([getattr(record, column.name) for column in Payments.__mapper__.columns])
         return
 
 
@@ -106,5 +120,66 @@ def get_user_bookings(user_id):
         for i in bookings:
             result.append([getattr(i, column.name) for column in Payments.__mapper__.columns])
         return result
+    else:
+        return False
+
+
+def send_details_change(payments_id):
+    payments = session.query(Payments).filter(Payments.id == payments_id).first()
+    if payments:
+        if payments.sending is True:
+            return True
+        elif payments.sending is False:
+            return False
+        else:
+            payments.sending = True
+            try:
+                session.commit()
+                return True
+            except IntegrityError:
+                session.rollback()
+                return False
+    else:
+        return False
+
+
+def check_active_user(user_id):
+    user = session.query(User).filter(User.id == user_id).first()
+    if user:
+        return user.active
+    else:
+        return False
+
+
+def change_status_pay(payments_id):
+    payments = session.query(Payments).filter(Payments.id == payments_id).first()
+    if payments:
+        if payments.status is False:
+            payments.status = True
+            try:
+                session.commit()
+                return True
+            except IntegrityError:
+                session.rollback()
+                return False
+        else:
+            return False
+    else:
+        return False
+
+
+def change_status_booking(payments_id, change):
+    payments = session.query(Payments).filter(Payments.id == payments_id).first()
+    if payments:
+        if payments.confirm is not change:
+            payments.confirm = change
+            try:
+                session.commit()
+                return True
+            except IntegrityError:
+                session.rollback()
+                return False
+        else:
+            return False
     else:
         return False

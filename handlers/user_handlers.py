@@ -68,13 +68,6 @@ async def process_menu_command(message: Message):
     )
 
 
-# @router.message(Command(commands='test'))
-# async def process_help_command(message: Message):
-#     await message.answer(text=LEXICON['/test'])
-#     for i in config.tg_bot.admin_ids:
-#         await bot.send_message(chat_id=i, text='Тестовое сообщение')
-
-
 # Этот хэндлер будет срабатывать на нажатие кнопки "Информация о доме"
 @router.callback_query(F.data == 'info')
 async def get_info_house(callback: CallbackQuery):
@@ -107,6 +100,7 @@ async def get_bookings_list(callback: CallbackQuery, state: FSMContext):
         if len(bookings) > i+1:
             button1 = InlineKeyboardButton(text=LEXICON_BUTTONS['next'], callback_data=str(i + 1))
             kb_builder.add(button1)
+        kb_builder.row(InlineKeyboardButton(text='Обратная связь', callback_data='feedback'), width=1)
         kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
         await callback.message.edit_text(
             text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nЛогин: @{result[3]}\nДом №{result[1]}\nДата брони: '
@@ -133,6 +127,7 @@ async def get_bookings_list(callback: CallbackQuery):
         if len(bookings) > i + 1:
             button1 = InlineKeyboardButton(text=LEXICON_BUTTONS['next'], callback_data=str(i + 1))
             kb_builder.add(button1)
+        kb_builder.row(InlineKeyboardButton(text='Обратная связь', callback_data='feedback'), width=1)
         kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
         await callback.message.edit_text(
             text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nЛогин: @{result[3]}\nДом №{result[1]}\nДата брони: '
@@ -143,3 +138,11 @@ async def get_bookings_list(callback: CallbackQuery):
         )
     else:
         await callback.message.answer('Вы еще не бронировали')
+
+
+@router.callback_query(F.data == 'feedback')
+async def get_bookings_list(callback: CallbackQuery):
+    for i in config.tg_bot.admin_ids:
+        await bot.send_message(chat_id=i, text=f'Пользователь {callback.message.text.split()[6]} запросил'
+                                               f' обратную связь. \nНомер: {callback.message.text.split()[16]}')
+        await callback.answer()
