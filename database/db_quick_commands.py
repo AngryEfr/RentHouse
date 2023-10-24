@@ -187,3 +187,16 @@ def change_status_booking(payments_id, change):
             return False
     else:
         return False
+
+
+def get_bookings_tomorrow():
+    date_now = datetime.date.today() + datetime.timedelta(days=1)
+    bookings = session.query(Payments).filter(Payments.date_begin == date_now).\
+        filter(Payments.confirm).order_by(Payments.date_begin)
+    result = list()
+    if bookings:
+        for i in bookings:
+            result.append([getattr(i, column.name) for column in Payments.__mapper__.columns])
+        return result
+    else:
+        return False

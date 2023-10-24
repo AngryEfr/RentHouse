@@ -2,9 +2,13 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from config_data.config import Config, load_config
 from handlers import admin_handlers, user_handlers, other_handlers
+from handlers.apsched import send_message_cron
 from keyboards.set_menu import set_main_menu
+from pytz import timezone
+from apscheduler.triggers.cron import CronTrigger
 
 
 logger = logging.getLogger(__name__)
@@ -26,6 +30,10 @@ async def main():
     dp.include_router(admin_handlers.router)
     dp.include_router(user_handlers.router)
     dp.include_router(other_handlers.router)
+
+    scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
+    scheduler.add_job(send_message_cron, CronTrigger(hour=9, minute=00, timezone=timezone("Europe/Moscow")))
+    scheduler.start()
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
