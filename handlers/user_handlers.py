@@ -9,6 +9,7 @@ from aiogram.fsm.context import FSMContext
 from database.db_quick_commands import register_user, get_active_house, get_user_bookings, get_booking
 from config_data.config import Config, load_config
 from keyboards.menu_buttons import create_main_menu, create_info_menu
+from utils.amplitude import track_user
 
 from lexicon.lexicon_ru import LEXICON, LEXICON_BUTTONS
 
@@ -142,6 +143,7 @@ async def get_bookings_list(callback: CallbackQuery):
 
 @router.callback_query(F.data == 'feedback')
 async def get_bookings_list(callback: CallbackQuery):
+    track_user(callback.from_user.id, "Feedback")
     for i in config.tg_bot.admin_ids:
         await bot.send_message(chat_id=i, text=f'Пользователь {callback.message.text.split()[6]} запросил'
                                                f' обратную связь. \nНомер: {callback.message.text.split()[16]}')

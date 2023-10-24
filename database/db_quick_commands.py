@@ -3,6 +3,8 @@ from database.database import User, House, Booking, Payments, session
 import datetime
 import csv
 
+from utils.amplitude import track_user
+
 
 def register_user(message, admin):
     username = message.from_user.username if message.from_user.username else None
@@ -12,6 +14,7 @@ def register_user(message, admin):
 
     try:
         session.commit()
+        track_user(message.from_user.id, "Sign Up")
         return True
     except IntegrityError:
         session.rollback()
@@ -39,6 +42,7 @@ def get_booking(message, name, id_house, date_begin, date_end, phone):
 
     try:
         session.commit()
+        track_user(message.from_user.id, "Booking")
         return True
     except IntegrityError:
         session.rollback()

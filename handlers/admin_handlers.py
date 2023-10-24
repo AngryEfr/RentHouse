@@ -198,7 +198,7 @@ async def process_booking_status(callback: CallbackQuery):
                                     f'{".".join(reversed(callback.message.text.split()[14].split("-")))} с '
                                     f'14:00.</b>\n\nОзнакомьтесь с правилами проживания в /menu -> Информация о доме.'
                                     f'\n\nС дополнительной информацией можно ознакомиться в\n/menu -> Посмотреть мои '
-                                    f'брони.\n\nТам же есть кнопка "Обратной связи"\nСпасибо.')
+                                    f'брони.\n\nТам же есть кнопка "Обратной связи".\nСпасибо.')
         await callback.answer('Информация о подтверждении бронирования отправлена.', show_alert=True)
 
 
