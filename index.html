@@ -1,40 +1,192 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Бронирование дома посуточно</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Календарь</title>
+    <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: var(--tg-theme-text-color);
+      background: var(--tg-theme-bg-color);
+      margin: 0;
+      padding: 0;
+    }
+
+    #main {
+      text-align: center;
+    }
+
+    #main img {
+      max-width: 400px;
+      height: auto;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    p {
+      text-align: center;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    label {
+      margin-bottom: 10px;
+    }
+
+    input[type="text"],
+    input[type="tel"],
+    input[type="date"] {
+      padding: 5px 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+
+    input[type="submit"],
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background-color: #3498db;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button {
+      margin-left: 10px;
+      background-color: #ccc;
+    }
+
+    .calendar {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .calendar h1 {
+      text-align: center;
+    }
+
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .days li {
+      margin: 5px;
+      padding: 5px;
+      width: 30px;
+      height: 30px;
+      text-align: center;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .days li:hover {
+      background-color: #e2e2e2;
+    }
+
+    .days li.disabled {
+      color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .days li.selected {
+      background-color: #3498db;
+      color: #fff;
+    }
+
+    .current-day {
+      color: red;
+      border: 2px solid red;
+    }
+    </style>
 </head>
 <body>
-    <div id="main">
-        <img src="https://gas-kvas.com/uploads/posts/2023-02/1675484251_gas-kvas-com-p-kartinki-dlya-fonovogo-risunka-raboch-stol-43.jpg">
-        <h1>Бронирование дома в Маурино</h1>
-        <p>Здесь описание</p>
-    </div>
 
-    <form id="bookingForm" action="submitBooking.php" method="POST">
-        <label for="name">Ваше имя:</label>
-        <input type="text" id="name" name="name" required><br><br>
-        <label for="phone">Ваш номер телефона:</label>
-        <input type="tel" id="phone" name="phone" required><br><br>
-        <div class="calendar">
+
+    <button id="previousMonthBtn">Назад</button>
+    <button id="nextMonthBtn">Вперед</button>
+
+    <div class="calendar">
             <h1 id="currentMonth"></h1>
             <ul class="days"></ul>
         </div>
-        <div style="display: inline;">
-            <label for="checkInDate">Дата заезда:</label>
-            <input type="date" id="checkInDate" name="checkInDate" required><br><br>
-            <label for="checkOutDate">Дата выезда:</label>
-            <input type="date" id="checkOutDate" name="checkOutDate" required><br><br>
-        </div>
-        <div id="error"></div>
-        <div style="display: inline;">
-          <input type="submit" value="Забронировать">
-          <button id="cancelButton">Отмена</button>
-        </div>
-    </form>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="script.js"></script>
+
+    <script>
+        const currentDate = new Date();
+        const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
+        const currentYear = currentDate.getFullYear();
+
+        document.getElementById("currentMonth").textContent = `${currentMonth} ${currentYear}`;
+
+        const previousMonthBtn = document.getElementById("previousMonthBtn");
+        const nextMonthBtn = document.getElementById("nextMonthBtn");
+
+        // Добавление обработчиков событий для кнопок
+        previousMonthBtn.addEventListener("click", handlePrev);
+        nextMonthBtn.addEventListener("click", handleNext);
+
+        // Отображение начального календаря
+        generateCalendar(currentYear, currentDate.getMonth());
+
+        let clickCounter = 0;
+
+        function handleNext() {
+            clickCounter += 1;
+            const offset = clickCounter;
+            const currentMonth = currentDate.getMonth();
+            const nextMonth = currentMonth + offset;
+            const nextYear = currentYear + Math.floor(nextMonth / 12);
+            generateCalendar(nextYear, nextMonth % 12);
+        }
+
+        function handlePrev() {
+            clickCounter -= 1;
+            const offset = Math.abs(clickCounter);
+            const currentMonth = currentDate.getMonth();
+            const prevMonth = currentMonth - offset;
+            const prevYear = currentYear + Math.floor(prevMonth / 12);
+            generateCalendar(prevYear, prevMonth % 12);
+        }
+
+        function generateCalendar(year, month) {
+            const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDayOfWeek = new Date(year, month, 1).getDay();
+
+            const weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+            const calendarDays = document.querySelector(".days");
+
+            calendarDays.innerHTML = "";
+
+            // Определяем сдвиг для начала недели (если понедельник - 0, если воскресенье - 6)
+            let shift = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+            for (let i = 0; i < shift; i++) {
+                const emptyCell = document.createElement("li");
+                calendarDays.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= totalDaysInMonth; day++) {
+                const cell = document.createElement("li");
+                cell.textContent = day;
+                cell.addEventListener("click", () => {
+                    selectDate(cell);
+                });
+                calendarDays.appendChild(cell);
+            }
+        }
+    </script>
+
 </body>
 </html>

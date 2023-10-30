@@ -1,5 +1,5 @@
 from sqlalchemy.exc import IntegrityError
-from database.database import User, House, Booking, Payments, session
+from database.database import User, House, Booking, Payments, session, Advert
 import datetime
 import csv
 
@@ -32,7 +32,7 @@ def get_booking(message, name, id_house, date_begin, date_end, phone):
     bookings = []
     date = date_end - date_begin
     payments = Payments(id_person=int(message.chat.id), username=username, id_house=id_house, comment=date.days,
-                        date_pay=date_now, date_begin=date_begin, phone=phone)
+                        date_pay=date_now, date_begin=date_begin, phone=phone, name=name)
     for i in range(date.days):
         booking = Booking(id_person=int(message.chat.id), name_person=name, id_house=id_house, date=date_begin)
         bookings.append(booking)
@@ -92,7 +92,7 @@ def csv_save_confirmed():
     with open('mydump.csv', 'w', encoding='utf8', newline='') as outfile:
         dt_now = datetime.date.today()
         names = ['Ид платежа', 'Дом', 'Имя', 'Логин', 'Дата брони', 'Дата заезда', "Телефон", 'Отправка увед.',
-                 'Статус предоплаты', 'Подтверждение', 'Количество дней']
+                 'Статус предоплаты', 'Подтверждение', 'Количество дней', 'Имя']
         outcsv = csv.writer(outfile, delimiter=",")
         outcsv.writerow(names)
         query = session.query(Payments).filter(Payments.date_begin >= dt_now).\
@@ -189,6 +189,15 @@ def change_status_booking(payments_id, change):
         return False
 
 
+def check_free_date(date):
+    payments = session.query(Payments).filter(Payments.date_begin == date, Payments.confirm).order_by(Payments.date_begin)
+    if payments:
+        for _ in payments:
+            return True
+    else:
+        return False
+
+
 def get_bookings_tomorrow():
     date_now = datetime.date.today() + datetime.timedelta(days=1)
     bookings = session.query(Payments).filter(Payments.date_begin == date_now).\
@@ -198,5 +207,24 @@ def get_bookings_tomorrow():
         for i in bookings:
             result.append([getattr(i, column.name) for column in Payments.__mapper__.columns])
         return result
+    else:
+        return False
+
+
+def get_advert(num):
+    advert_num = session.query(Advert).filter(Advert.id == int(num)).first()
+    if advert_num:
+        return advert_num.text
+    else:
+        return False
+
+
+def get_users_id():
+    users_id = session.query(User).filter(User.active)
+    users = []
+    if users_id:
+        for i in users_id:
+            users.append(i.id)
+        return users
     else:
         return False

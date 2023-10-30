@@ -31,7 +31,7 @@ async def process_start_command(message: Message):
 # Хэндлер команды /help
 @router.message(Command(commands='help'))
 async def process_help_command(message: Message):
-    await message.answer(text=LEXICON['/help'])
+    await message.answer(text=LEXICON['/help'], disable_web_page_preview=True)
 
 
 # Хэндлер команды /booking - Ссылка для работы с web_app
@@ -39,10 +39,10 @@ async def process_help_command(message: Message):
 async def process_help_admin_command(message: Message):
     markup = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Перейти к бронированию',
                                                            web_app=WebAppInfo(
-                                                               url='https://angryefr.github.io/testsite/'
+                                                               url='https://maurino.ru',
                                                            ))]],
                                  resize_keyboard=True)
-    await message.answer(text=LEXICON['/booking'], reply_markup=markup)
+    await message.answer(text=LEXICON['/booking'], reply_markup=markup, disable_web_page_preview=True)
 
 
 # Хэндлер работы с информацией от web_app
@@ -105,14 +105,16 @@ async def get_bookings_list(callback: CallbackQuery, state: FSMContext):
         kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
         await callback.message.edit_text(
             text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nЛогин: @{result[3]}\nДом №{result[1]}\nДата брони: '
-                 f'{result[4]}\n'
-                 f'Дата заселения: {result[5]}\nТелефон: {result[6]}\nОплата: {result[8]}\nПодтверждение: {result[9]}\n'
-                 f'Количество дней: {result[10]}',
+                 f'{result[4]}\nДата заселения: {result[5]}\nТелефон: {result[6]}\n'
+                 f'{"Оплачено" if result[8] else "Не оплачено"}\n'
+                 f'{"Заезд подтвержден" if result[9]else("Заезд отменен" if result[9] is False else "Ожидает подтверждения")}\n'
+                 f'Заезд продлится {result[10]} {"день" if result[10][-1] == "1" else ("дня" if result[10][-1] in ["2", "3", "4"] else "дней")}',
             reply_markup=kb_builder.as_markup()
         )
         await state.clear()
     else:
         await callback.message.answer('Вы еще не бронировали.')
+        await callback.answer()
 
 
 @router.callback_query(F.data.isdigit())
@@ -132,13 +134,15 @@ async def get_bookings_list(callback: CallbackQuery):
         kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
         await callback.message.edit_text(
             text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nЛогин: @{result[3]}\nДом №{result[1]}\nДата брони: '
-                 f'{result[4]}\n'
-                 f'Дата заселения: {result[5]}\nТелефон: {result[6]}\nОплата: {result[8]}\nПодтверждение: {result[9]}\n'
-                 f'Количество дней: {result[10]}',
+                 f'{result[4]}\nДата заселения: {result[5]}\nТелефон: {result[6]}\n'
+                 f'{"Оплачено" if result[8] else "Не оплачено"}\n'
+                 f'{"Заезд подтвержден" if result[9]else("Заезд отменен" if result[9] is False else "Ожидает подтверждения")}\n'
+                 f'Заезд продлится {result[10]} {"день" if result[10][-1] == "1" else ("дня" if result[10][-1] in ["2", "3", "4"] else "дней")}',
             reply_markup=kb_builder.as_markup()
         )
     else:
         await callback.message.answer('Вы еще не бронировали')
+        await callback.answer()
 
 
 @router.callback_query(F.data == 'feedback')
@@ -147,4 +151,5 @@ async def get_bookings_list(callback: CallbackQuery):
     for i in config.tg_bot.admin_ids:
         await bot.send_message(chat_id=i, text=f'Пользователь {callback.message.text.split()[6]} запросил'
                                                f' обратную связь. \nНомер: {callback.message.text.split()[16]}')
+        await callback.message.answer(text=LEXICON['feedback'])
         await callback.answer()

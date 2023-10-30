@@ -62,6 +62,14 @@ class Payments(Base):
     confirm = Column(Boolean)                                               # Подтверждение платежа (админом)
     bookings = relationship("Booking", back_populates='payments')
     comment = Column(String)                                                # Комментарий (количество дней)
+    name = Column(String)
+
+
+class Advert(Base):
+    __tablename__ = 'advertisment'
+
+    id = Column(Integer, primary_key=True)
+    text = Column(String, default='Пусто')
 
 
 Base.metadata.create_all(bind=engine)

@@ -8,7 +8,7 @@ from states.states import FSMFillForm
 
 from config_data.config import Config, load_config
 from database.db_quick_commands import register_user, get_active_house, csv_save, get_bookings, send_details_change, \
-    check_active_user, change_status_pay, change_status_booking, csv_save_confirmed
+    check_active_user, change_status_pay, change_status_booking, csv_save_confirmed, get_advert, get_users_id, check_free_date
 
 from filters.is_admin import IsAdmin
 from keyboards.menu_buttons import create_main_menu, create_info_menu
@@ -34,7 +34,52 @@ async def process_start_admin_command(message: Message, state: FSMContext):
 # Хэндлер команды /help для админов
 @router.message(Command(commands='help'))
 async def process_help_admin_command(message: Message, state: FSMContext):
-    await message.answer(text=LEXICON['/help_admin'])
+    await message.answer(text=LEXICON['/help_admin'], disable_web_page_preview=True)
+    await state.clear()
+
+
+@router.message(Command(commands='testadvert'))
+async def process_help_admin_command(message: Message, state: FSMContext):
+
+    try:
+        if len(message.text) > 12:
+            num = message.text[12:]
+        else:
+            raise Exception("Цифру объявления забыл?")
+        if not num.isdigit():
+            raise Exception("Только цифру!")
+        advert = get_advert(num)
+        if not advert:
+            raise Exception("Нет такого объявления")
+
+    except Exception as Error:
+        await message.answer(text=f'{Error}')
+    else:
+        await message.answer(text=f'{advert}')
+    await state.clear()
+
+
+@router.message(Command(commands='advert'))
+async def process_help_admin_command(message: Message, state: FSMContext):
+    try:
+        if len(message.text) > 8:
+            num = message.text[8:]
+        else:
+            raise Exception("Цифру объявления забыл?")
+        if not num.isdigit():
+            raise Exception("Только цифру!")
+        users = get_users_id()
+        if not users:
+            raise Exception("Нет активных участников")
+        advert = get_advert(num)
+        if not advert:
+            raise Exception("Нет такого объявления")
+
+    except Exception as Error:
+        await message.answer(text=f'{Error}')
+    else:
+        for i in users:
+            await bot.send_message(chat_id=int(i), text=f'{advert}')
     await state.clear()
 
 
@@ -113,14 +158,19 @@ async def get_bookings_list(callback: CallbackQuery, state: FSMContext):
                        width=1)
         kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
         await callback.message.edit_text(
-            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nЛогин: @{result[3]}\nДом №{result[1]}\nДата брони: '
-                 f'{result[4]}\nДата заселения: {result[5]}\nТелефон: {result[6]}\nРеквизиты отправлены: {result[7]}\n'
-                 f'Оплата: {result[8]}\nПодтверждение заезда: {result[9]}\nКоличество дней: {result[10]}',
+            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nЛогин: @{result[3]}\n'
+                 f'Дом №{result[1]}\nДата брони: {result[4]}\nДата заселения: {result[5]}\nТелефон: {result[6]}\n'
+                 f'{"Реквизиты отправлены" if result[7] else ("Реквизиты не отправлены"if result[7] is False else "Ожидает реквизиты")}\n'
+                 f'{"Оплачено" if result[8] else "Не оплачено"}\n'
+                 f'{"Заезд подтвержден" if result[9]else("Заезд отменен" if result[9] is False else "Ожидает подтверждения")}'
+                 f'\nЗаезд продлится {result[10]} {"день" if result[10][-1] == "1" else ("дня" if result[10][-1] in ["2", "3", "4"] else "дней")}'
+                 f'\nИмя: {result[11]}',
             reply_markup=kb_builder.as_markup()
         )
         await state.set_state(FSMFillForm.show_bookings)
     else:
         await callback.message.answer('Пока никто не бронировал.')
+        await callback.answer()
 
 
 @router.callback_query(F.data.isdigit(), StateFilter(FSMFillForm.show_bookings))
@@ -147,13 +197,18 @@ async def get_bookings_list(callback: CallbackQuery):
                        width=1)
         kb_builder.row(InlineKeyboardButton(text='На главную', callback_data='menu'), width=1)
         await callback.message.edit_text(
-            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nЛогин: @{result[3]}\nДом №{result[1]}\nДата брони: '
-                 f'{result[4]}\nДата заселения: {result[5]}\nТелефон: {result[6]}\nРеквизиты отправлены: {result[7]}\n'
-                 f'Оплата: {result[8]}\nПодтверждение заезда: {result[9]}\nКоличество дней: {result[10]}',
+            text=f'Бронь №{result[0]}\nID пользователя {result[2]}\nЛогин: @{result[3]}\n'
+                 f'Дом №{result[1]}\nДата брони: {result[4]}\nДата заселения: {result[5]}\nТелефон: {result[6]}\n'
+                 f'{"Реквизиты отправлены" if result[7] else ("Реквизиты не отправлены"if result[7] is False else "Ожидает реквизиты")}\n'
+                 f'{"Оплачено" if result[8] else "Не оплачено"}\n'
+                 f'{"Заезд подтвержден" if result[9]else("Заезд отменен" if result[9] is False else "Ожидает подтверждения")}'
+                 f'\nЗаезд продлится {result[10]} {"день" if result[10][-1] == "1" else ("дня" if result[10][-1] in ["2", "3", "4"] else "дней")}'
+                 f'\nИмя: {result[11]}',
             reply_markup=kb_builder.as_markup()
         )
     else:
         await callback.message.answer('Пока никто не бронировал.')
+        await callback.answer()
 
 
 @router.callback_query(F.data == 'send_details')
@@ -161,20 +216,22 @@ async def process_send_details(callback: CallbackQuery):
     try:
         if not check_active_user(int(callback.message.text.split()[4])):
             raise Exception("Бот заблокирован пользователем.")
-        if not send_details_change(callback.message.text.split()[1][1]):
+        if not send_details_change(callback.message.text.split()[1][1:]):
             raise Exception("Ошибка отправки.")
+        if check_free_date(callback.message.text.split()[14]):
+            raise Exception("Дата занята!")
 
     except Exception as Error:
         await callback.answer(f'{Error}', show_alert=True)
     else:
-        await bot.send_message(chat_id=int(callback.message.text.split()[4]), text=LEXICON['send_details'])
+        await bot.send_message(chat_id=int(callback.message.text.split()[4]), text=LEXICON['send_details'], disable_web_page_preview=True)
         await callback.answer('Реквизиты отправлены', show_alert=True)
 
 
 @router.callback_query(F.data == 'confirm_pay')
 async def process_confirm_pay(callback: CallbackQuery):
     try:
-        if not change_status_pay(callback.message.text.split()[1][1]):
+        if not change_status_pay(callback.message.text.split()[1][1:]):
             raise Exception("Уже подтверждено!")
 
     except Exception as Error:
@@ -187,7 +244,9 @@ async def process_confirm_pay(callback: CallbackQuery):
 @router.callback_query(F.data == 'confirm_booking')
 async def process_booking_status(callback: CallbackQuery):
     try:
-        if not change_status_booking(callback.message.text.split()[1][1], True):
+        if check_free_date(callback.message.text.split()[14]):
+            raise Exception("Дата занята!")
+        if not change_status_booking(callback.message.text.split()[1][1:], True):
             raise Exception("Уже подтверждено!")
 
     except Exception as Error:
@@ -205,7 +264,7 @@ async def process_booking_status(callback: CallbackQuery):
 @router.callback_query(F.data == 'cancel_booking')
 async def process_booking_status(callback: CallbackQuery):
     try:
-        if not change_status_booking(callback.message.text.split()[1][1], False):
+        if not change_status_booking(callback.message.text.split()[1][1:], False):
             raise Exception("Не было подтверждено!")
 
     except Exception as Error:
