@@ -5,41 +5,38 @@ let cancelButton = document.getElementById("cancelButton");
 let isStartDateSelected = false;
 tg.expand()
 
-submitButton.addEventListener("click", () => {
-    document.getElementById("error").innerText = "";
-    let name = document.getElementById("name").value;
-    let phone = document.getElementById("phone").value;
-    let dateIn = document.getElementById("checkInDate").value;
-    let dateOut = document.getElementById("checkOutDate").value;
+let currentDate = new Date();
+let currentYear = currentDate.getFullYear();
 
-    if (phone.length < 8) {
-        document.getElementById("error").innerText = "Ошибка в номере телефона";
-        return;
+let takeYear = currentDate.getFullYear();
+let clickCounter = 0;
+
+function handleNext() {
+    clickCounter += 1;
+    const currentMonth = currentDate.getMonth();
+    const nextMonth = currentMonth + clickCounter;
+    const nextYear = currentYear + Math.floor(nextMonth / 12);
+    const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+    const viewMonth = monthNames[(nextMonth % 12 + 12) % 12];
+    document.getElementById("viewMonth").textContent = `${viewMonth} ${nextYear}`;
+    generateCalendar(nextYear, nextMonth % 12);
+}
+
+
+function handlePrev() {
+      clickCounter -= 1;
+      const currentMonth = currentDate.getMonth();
+      const previousMonth = currentMonth + clickCounter;
+      const previousYear = currentYear + Math.floor(previousMonth / 12);
+
+      const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+      const viewMonth = monthNames[(previousMonth % 12 + 12) % 12];
+      document.getElementById("viewMonth").textContent = `${viewMonth} ${previousYear}`;
+      generateCalendar(previousYear, previousMonth % 12);
     }
-
-    let data = {
-        name: name,
-        phone: phone,
-        dateIn: dateIn,
-        dateOut: dateOut,
-    }
-    tg.sendData(JSON.stringify(data));
-
-    tg.close();
-});
-
-
-bookingForm.addEventListener("submit", function(e) {
-    e.preventDefault();
-    tg.sendMessage("Бронирование отправлено!");
-});
-
-cancelButton.addEventListener("click", function(e) {
-    e.preventDefault();
-    tg.close();
-});
 
 function generateCalendar(year, month) {
+    const viewMonth = currentDate.toLocaleString('default', { month: 'long' });
     const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDayOfWeek = new Date(year, month, 1).getDay();
 
@@ -60,39 +57,88 @@ function generateCalendar(year, month) {
         const cell = document.createElement("li");
         cell.textContent = day;
         cell.addEventListener("click", () => {
-            selectDate(cell);
+            selectDate(cell, month + 1, year);
         });
         calendarDays.appendChild(cell);
     }
 }
 
-function selectDate(cell) {
+submitButton.addEventListener("click", () => {
+    document.getElementById("error").innerText = "";
+    let name = document.getElementById("name").value;
+    let phone = document.getElementById("phone").value;
+    let dateIn = document.getElementById("checkInDate").value;
+    let dateOut = document.getElementById("checkOutDate").value;
+
+    if (phone.length < 8) {
+        document.getElementById("error").innerText = "Ошибка в номере телефона";
+        return;
+    }
+
+    if (dateOut <= dateIn) {
+        document.getElementById("error").innerText = "Проверьте даты";
+        return;
+    }
+
+    let data = {
+        name: name,
+        phone: phone,
+        dateIn: dateIn,
+        dateOut: dateOut,
+    };
+    tg.sendData(JSON.stringify(data));
+
+    tg.close();
+});
+
+
+bookingForm.addEventListener("submit", function(e) {
+    e.preventDefault();
+    tg.sendMessage("Бронирование отправлено!");
+});
+
+cancelButton.addEventListener("click", function(e) {
+    e.preventDefault();
+    tg.close();
+});
+
+
+function selectDate(cell, month, year) {
   if (isStartDateSelected) {
     // Если уже выбрана дата заезда, устанавливаем дату выезда
     const checkOutDateInput = document.getElementById("checkOutDate");
-    checkOutDateInput.value = formatDate(cell.textContent);
+    checkOutDateInput.value = formatDate(cell.textContent, month, year);
   } else {
     // Если еще не выбрана дата заезда, устанавливаем её
     const checkInDateInput = document.getElementById("checkInDate");
-    checkInDateInput.value = formatDate(cell.textContent);
+    checkInDateInput.value = formatDate(cell.textContent, month, year);
     isStartDateSelected = true;
   }
 }
+
 
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-function formatDate(day) {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth() + 1; // Месяцы в JavaScript нумеруются с 0
-  return `${currentYear}-${currentMonth}-${day}`;
+function formatDate(day, month, year) {
+  return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 }
 
-const currentDate = new Date();
-const currentMonth = capitalizeFirstLetter(currentDate.toLocaleString("default", { month: "long" }));
-document.getElementById("currentMonth").textContent = currentMonth;
 
-generateCalendar(currentDate.getFullYear(), currentDate.getMonth());
+const takeMonth = currentDate.getMonth();
+const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
+const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+const viewMonth = monthNames[takeMonth];
+document.getElementById("viewMonth").textContent = `${viewMonth} ${currentYear}`;
+
+
+const previousMonthBtn = document.getElementById("previousMonthBtn");
+const nextMonthBtn = document.getElementById("nextMonthBtn");
+// Добавление обработчиков событий для кнопок
+previousMonthBtn.addEventListener("click", handlePrev);
+nextMonthBtn.addEventListener("click", handleNext);
+generateCalendar(currentYear, currentDate.getMonth());
+
+
 tg.ready();
