@@ -5,7 +5,7 @@ from sqlalchemy.orm import scoped_session, declarative_base, sessionmaker, relat
 
 config: Config = load_config('.env')
 
-engine = create_engine(f"postgresql+psycopg2://postgres:{config.db.db_password}@{config.db.db_host}/"
+engine = create_engine(f"postgresql+psycopg2://{config.db.db_user}:{config.db.db_password}@{config.db.db_host}/"
                        f"{config.db.database}")
 session = scoped_session(sessionmaker(bind=engine))
 Base = declarative_base()
