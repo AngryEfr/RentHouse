@@ -2,7 +2,7 @@
 
 Инструкция по установке через Docker.
 1) Создаем образ бота.
-    >build -t botapp .
+    >docker build -t botapp .
 2) Создаем контейнер базы данных Postgres.\
     Пароль, Имя пользователя и Название базы данных можно указать свои. Их нужно будет использовать в следующем пункте.
     >sudo docker run --rm --name selectel-pgdocker -e POSTGRES_PASSWORD=12345 -e POSTGRES_USER=postgres -e POSTGRES_DB=maurinodatabase -d -p 5432:5432 -v $HOME/docker/volumes/postgres:/var/lib/postgresql/data postgres
