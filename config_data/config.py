@@ -15,6 +15,7 @@ class TgBot:
     token: str            # Токен для доступа к телеграм-боту
     admin_ids: list[int]  # Список id администраторов бота
     amplitude_token: str
+    webapp_link: str
 
 
 @dataclass
@@ -31,7 +32,8 @@ def load_config(path: str | None) -> Config:
         tg_bot=TgBot(
             token=env('BOT_TOKEN'),
             admin_ids=list(map(int, env.list('ADMIN_IDS'))),
-            amplitude_token=env('AMPLITUDE_TOKEN')
+            amplitude_token=env('AMPLITUDE_TOKEN'),
+            webapp_link=env('WEBAPP_LINK')
         ),
         db=DatabaseConfig(
             database=env('DATABASE'),

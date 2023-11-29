@@ -39,7 +39,7 @@ async def process_help_command(message: Message):
 async def process_help_admin_command(message: Message):
     markup = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Перейти к бронированию',
                                                            web_app=WebAppInfo(
-                                                               url='https://maurino.ru',
+                                                               url=config.tg_bot.webapp_link,
                                                            ))]],
                                  resize_keyboard=True)
     await message.answer(text=LEXICON['/booking'], reply_markup=markup, disable_web_page_preview=True)
