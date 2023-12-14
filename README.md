@@ -1,5 +1,5 @@
 Бот для бронирования частного дома посуточно.\
-Сайт я запустил с помощью Git Pages. (https://github.com/AngryEfr/testhttps)\
+Сайт я запустил с помощью Git Pages. (https://github.com/AngryEfr/testhttps)
 Его и указал в webapp ссылке.\
 Клонируем директорию и переходим в нее с помощью терминала.
 
